@@ -1,4 +1,4 @@
-define(['bookmarks-compare', 'bookmarks-json_to_string'], function(compare, jsonToString){
+define(['modules/compare', 'modules/json_to_string'], function(compare, jsonToString){
   function BookmarksParser() {
     this.DEFAULTS = {
       ID: 'bookmarksFiles'
