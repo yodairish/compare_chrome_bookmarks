@@ -480,7 +480,7 @@ Parser.prototype._addTitle = function(line){
     added: line.match(/ADD_DATE="([^"]*)"/),
     modify: line.match(/LAST_MODIFIED="([^"]*)"/),
     personal: line.match(/PERSONAL_TOOLBAR_FOLDER="([^"]*)"/)
-  }
+  };
   
   this._breadcrumbs.push({
     title: matches.title ? matches.title[1] : '',
@@ -512,7 +512,7 @@ Parser.prototype._addLink = function(line){
     url: line.match(/HREF="([^"]*)"/),
     added: line.match(/ADD_DATE="([^"]*)"/),
     icon: line.match(/ICON="([^"]*)"/)
-  }
+  };
   
   this._folderLevel.links.push({
     title: matches.title ? matches.title[1] : '',

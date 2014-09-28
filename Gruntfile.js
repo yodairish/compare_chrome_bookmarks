@@ -4,6 +4,9 @@ module.exports = function(grunt) {
     browserify: {
       'build/bookmarks.js': ['js/main.js']
     },
+    jshint: {
+      all: ['js/modules/*.js', 'test/*.js']
+    },
     jest: {
       options: {
         coverage: true,
@@ -23,11 +26,12 @@ module.exports = function(grunt) {
     }
   });
 
+  grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-jest');
   grunt.loadNpmTasks('grunt-browserify');
   grunt.loadNpmTasks('grunt-closure-compiler');
 
-  grunt.registerTask('build', ['browserify', 'closure-compiler']);
-  grunt.registerTask('test', ['jest']);
+  grunt.registerTask('build', ['jshint', 'browserify', 'closure-compiler']);
+  grunt.registerTask('test', ['jshint', 'jest']);
   grunt.registerTask('default', ['build']);
 };
