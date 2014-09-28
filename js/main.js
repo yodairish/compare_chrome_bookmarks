@@ -1,9 +1,7 @@
-require.config({
-  baseUrl: "js"
-});
+require("./libs/domready");
+var Parser = require('./modules/parser');
 
-require(['libs/domReady','modules/parser'], function(domReady, parser){
-  domReady(function(){
-    parser.init();
-  });
+DomReady.ready(function() {
+  var parser = new Parser();
+  parser.init();
 });
