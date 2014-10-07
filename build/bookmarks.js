@@ -161,12 +161,12 @@ function Compare(){
 
 Compare.prototype.compare = function(bookmarks){
   this._differentBookmarks = {};
-  this._bookmarks = bookmarks;
+  this._bookmarks = bookmarks || [];
   
   this._bookmarks.forEach(function(book, index){
     this._findDifference([], book, index, book);
   }.bind(this));
-  
+
   return this._differentBookmarks;
 };
 
@@ -230,7 +230,7 @@ Compare.prototype._getFolder = function(breadcrumbs, book){
 Compare.prototype._findNewLinks = function(folder, book){
   var diff = [];
   if (!folder.links.length) return diff;
-  
+
   book.links.forEach(function(val){
     if (this._isNewLink(folder, val.url)) {
       diff.push(val);
@@ -271,7 +271,7 @@ Compare.prototype._addDifferentLinks = function(breadcrumbs, links, original){
     folder = folder[val];
     folderOriginal = folderOriginal[val];
   }.bind(this));
-  folder.links = links;
+  folder.links = folder.links.concat(links);
 };
 
 Compare.prototype._cloneData = function(data){
@@ -292,13 +292,25 @@ function JsonToString() {
   this._string = [];
 }
 
-JsonToString.prototype.parse = function(json, opt_needArray){
+JsonToString.prototype.parse = function(data){
+  data = data || {};
+  this._resetOutString();
+  this._jsonToString('', data.json, 0);
+  return !!data.returnArray ? this._string : this.toText(this._string);
+};
+
+JsonToString.prototype.toText = function(lines){
+  lines = lines || [];
+  return lines.length ? lines.join('\n') : '';
+};
+
+JsonToString.prototype._resetOutString = function(){
   this._string = [];
-  this._jsonToString('', json, 0);
-  return !!opt_needArray ? this._string : this._getString();
 };
 
 JsonToString.prototype._jsonToString = function(title, json, left){
+  if (!json) return;
+  
   var offset = this._calcOffset(left),
       linksOffset = offset + this._calcOffset(1);
   
@@ -313,13 +325,14 @@ JsonToString.prototype._jsonToString = function(title, json, left){
 };
 
 JsonToString.prototype._calcOffset = function(left){
+  left = +left || 0;
   return (new Array((left * this.CONST.TAB_SIZE) + 1)).join(' ');
 };
 
 JsonToString.prototype._addTitleFromJson = function(title, offset, data){
   var isRoot = (title === 'Bookmarks');
 
-  this._string.push(offset + (isRoot ? '<H1>' : '<DT><H3' + (data.added ? ' ADD_DATE="' + data.added + '"' : '') + (data.modify ? ' LAST_MODIFIED="' + data.modify + '"' : '') + (data.personal ? ' PERSONAL_TOOLBAR_FOLDER="' + data.personal + '"' : '') + '>') + title + (isRoot ? '</H1>' : '/<H3>'));
+  this._string.push(offset + (isRoot ? '<H1>' : '<DT><H3' + (data.added ? ' ADD_DATE="' + data.added + '"' : '') + (data.modify ? ' LAST_MODIFIED="' + data.modify + '"' : '') + (data.personal ? ' PERSONAL_TOOLBAR_FOLDER="' + data.personal + '"' : '') + '>') + title + (isRoot ? '</H1>' : '</H3>'));
   this._string.push(offset + '<DL><p>');
 };
 
@@ -332,11 +345,16 @@ JsonToString.prototype._addLinksFromJson = function(offset, links){
 };
 
 JsonToString.prototype._addNextLevelFromJson = function(json, left){
-  if (!json || this._a < 0) return;
-
+  if (!json) return;
+  
+  var nextLevel;
+  
   for(var title in json) {
     if (title !== 'links' && title !== 'data') {
-      this._string.push(this._jsonToString(title, json[title], left));
+      nextLevel = this._jsonToString(title, json[title], left);
+      if (nextLevel) {
+        this._string.push(nextLevel);
+      }
     }
   }
 };
@@ -345,10 +363,6 @@ JsonToString.prototype._closeTitleFromJson = function(title, offset){
   if (!title) return;
 
   this._string.push(offset + '</DL><p>');
-};
-
-JsonToString.prototype._getString = function(){
-  return this._string.join('\n');
 };
 
 module.exports = JsonToString;
@@ -374,7 +388,7 @@ function Parser() {
   this._bookmarks = [];
   this._newFile = {
     head: [],
-    body: []
+    body: ''
   };
   this._fileBody = {};
   this._folderLevel = {};
@@ -384,6 +398,22 @@ function Parser() {
 Parser.prototype.init = function(opt_options){
   this._setOptions(opt_options || {});
   this._attachInput();
+};
+
+Parser.prototype.onInputChange = function(){
+  var reader;
+  
+  this._hideDownloadLink();    
+  this._bookmarks = [];
+  this._files = this._input.files;
+  this._newFile.head =  [];
+  this._newFile.body =  '';
+  
+  for (var i = 0, len = this._files.length; i < len; i++){
+    reader = new FileReader();
+    reader.addEventListener('load', this._readFile.bind(this), false);
+    reader.readAsText(this._files[i]);
+  }
 };
 
 Parser.prototype._setOptions = function(options){
@@ -399,7 +429,7 @@ Parser.prototype._attachInput = function(){
 
   this._input.addEventListener(
     'change',
-    this._onInputChange.bind(this),
+    this.onInputChange.bind(this),
     false
   );
 };
@@ -422,22 +452,6 @@ Parser.prototype._createInput = function(){
   input.setAttribute('multiple', '');
   document.body.appendChild(input);
   return input;
-};
-
-Parser.prototype._onInputChange = function(){
-  var reader;
-  
-  this._hideDownloadLink();    
-  this._bookmarks = [];
-  this._files = this._input.files;
-  this._newFile.head =  [];
-  this._newFile.body =  [];
-  
-  for (var i = 0, len = this._files.length; i < len; i++){
-    reader = new FileReader();
-    reader.addEventListener('load', this._readFile.bind(this), false);
-    reader.readAsText(this._files[i]);
-  }
 };
 
 Parser.prototype._readFile = function(event){
@@ -530,7 +544,9 @@ Parser.prototype._compareAfterFinish = function(){
   if (this._bookmarks.length === this._files.length) {
     var differentBookmarks = compare.compare(this._bookmarks);
     
-    this._newFile.body = jsonToString.parse(differentBookmarks, true);
+    this._newFile.body = jsonToString.parse({
+      json: differentBookmarks
+    });
     
     if (!this._newFile.body) {
       alert('Not found different bookmarks');
@@ -558,8 +574,8 @@ Parser.prototype._updateInput = function(){
 
 Parser.prototype._textToUrl = function(){
   var blobText = new Blob([
-        this._arrayToString(this._newFile.head) +
-        this._arrayToString(this._newFile.body)
+        jsonToString.toText(this._newFile.head) +
+        this._newFile.body
       ]),
       url = URL.createObjectURL(blobText);
       

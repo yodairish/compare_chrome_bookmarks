@@ -5,7 +5,7 @@ module.exports = function(grunt) {
       'build/bookmarks.js': ['js/main.js']
     },
     jshint: {
-      all: ['js/modules/*.js', 'test/*.js']
+      all: ['js/modules/*.js', 'test/**/*.js']
     },
     jest: {
       options: {

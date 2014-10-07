@@ -5,12 +5,12 @@ function Compare(){
 
 Compare.prototype.compare = function(bookmarks){
   this._differentBookmarks = {};
-  this._bookmarks = bookmarks;
+  this._bookmarks = bookmarks || [];
   
   this._bookmarks.forEach(function(book, index){
     this._findDifference([], book, index, book);
   }.bind(this));
-  
+
   return this._differentBookmarks;
 };
 
@@ -74,7 +74,7 @@ Compare.prototype._getFolder = function(breadcrumbs, book){
 Compare.prototype._findNewLinks = function(folder, book){
   var diff = [];
   if (!folder.links.length) return diff;
-  
+
   book.links.forEach(function(val){
     if (this._isNewLink(folder, val.url)) {
       diff.push(val);
@@ -115,7 +115,7 @@ Compare.prototype._addDifferentLinks = function(breadcrumbs, links, original){
     folder = folder[val];
     folderOriginal = folderOriginal[val];
   }.bind(this));
-  folder.links = links;
+  folder.links = folder.links.concat(links);
 };
 
 Compare.prototype._cloneData = function(data){

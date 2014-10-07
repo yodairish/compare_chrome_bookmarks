@@ -19,7 +19,7 @@ function Parser() {
   this._bookmarks = [];
   this._newFile = {
     head: [],
-    body: []
+    body: ''
   };
   this._fileBody = {};
   this._folderLevel = {};
@@ -29,6 +29,22 @@ function Parser() {
 Parser.prototype.init = function(opt_options){
   this._setOptions(opt_options || {});
   this._attachInput();
+};
+
+Parser.prototype.onInputChange = function(){
+  var reader;
+  
+  this._hideDownloadLink();    
+  this._bookmarks = [];
+  this._files = this._input.files;
+  this._newFile.head =  [];
+  this._newFile.body =  '';
+  
+  for (var i = 0, len = this._files.length; i < len; i++){
+    reader = new FileReader();
+    reader.addEventListener('load', this._readFile.bind(this), false);
+    reader.readAsText(this._files[i]);
+  }
 };
 
 Parser.prototype._setOptions = function(options){
@@ -44,7 +60,7 @@ Parser.prototype._attachInput = function(){
 
   this._input.addEventListener(
     'change',
-    this._onInputChange.bind(this),
+    this.onInputChange.bind(this),
     false
   );
 };
@@ -67,22 +83,6 @@ Parser.prototype._createInput = function(){
   input.setAttribute('multiple', '');
   document.body.appendChild(input);
   return input;
-};
-
-Parser.prototype._onInputChange = function(){
-  var reader;
-  
-  this._hideDownloadLink();    
-  this._bookmarks = [];
-  this._files = this._input.files;
-  this._newFile.head =  [];
-  this._newFile.body =  [];
-  
-  for (var i = 0, len = this._files.length; i < len; i++){
-    reader = new FileReader();
-    reader.addEventListener('load', this._readFile.bind(this), false);
-    reader.readAsText(this._files[i]);
-  }
 };
 
 Parser.prototype._readFile = function(event){
@@ -175,7 +175,9 @@ Parser.prototype._compareAfterFinish = function(){
   if (this._bookmarks.length === this._files.length) {
     var differentBookmarks = compare.compare(this._bookmarks);
     
-    this._newFile.body = jsonToString.parse(differentBookmarks, true);
+    this._newFile.body = jsonToString.parse({
+      json: differentBookmarks
+    });
     
     if (!this._newFile.body) {
       alert('Not found different bookmarks');
@@ -203,8 +205,8 @@ Parser.prototype._updateInput = function(){
 
 Parser.prototype._textToUrl = function(){
   var blobText = new Blob([
-        this._arrayToString(this._newFile.head) +
-        this._arrayToString(this._newFile.body)
+        jsonToString.toText(this._newFile.head) +
+        this._newFile.body
       ]),
       url = URL.createObjectURL(blobText);
       
